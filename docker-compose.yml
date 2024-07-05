@@ -1,0 +1,8 @@
+services:
+  web:
+      build: ../internet-service-data
+      command: python run.py
+      volumes:
+        - .:/code
+      ports:
+        - "3000:3000"
