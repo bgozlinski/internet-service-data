@@ -1,5 +1,5 @@
 import os
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, render_template
 from src.database.models import Prediction
 from src.database.db import get_db
 import numpy as np
@@ -20,26 +20,56 @@ random_forest_model = joblib.load(random_forest_model_path)
 svm_model = joblib.load(svm_model_path)
 
 
+@route_bp.route('/')
+def index():
+    return render_template('index.html')
+
+
+@route_bp.route('/single_input')
+def single_input():
+    return render_template('single_input.html')
+
+
+@route_bp.route('/batch_input')
+def batch_input():
+    return render_template('batch_input.html')
+
+
 @route_bp.route('/predict', methods=['POST'])
 def predict():
     """
     Predict the probability of churn for a customer using either the Random Forest or SVM model.
 
-    The model to use is specified in the input JSON. The features for the prediction are extracted
-    from the input JSON and used to make a prediction. The result, along with the input data, is
-    saved in the database and returned as a JSON response.
+    The model to use is specified in the input JSON or form data. The features for the prediction are extracted
+    from the input and used to make a prediction. The result, along with the input data, is
+    saved in the database and returned as a JSON response or rendered HTML template.
 
     Returns:
-        (json): A JSON response containing the model used and the prediction probability.
+        (json): A JSON response containing the model used and the prediction probability, or rendered HTML.
     """
     db = next(get_db())  # Get a database session
-    data = request.get_json() # Get the input JSON data
+
+    if request.content_type == 'application/json':
+        data = request.get_json()  # Get the input JSON data
+    else:
+        data = {
+            'is_tv_subscriber_pred': bool(request.form.get('is_tv_subscriber_pred')),
+            'is_movie_package_subscriber_pred': bool(request.form.get('is_movie_package_subscriber_pred')),
+            'subscription_age_pred': float(request.form.get('subscription_age_pred')),
+            'bill_avg_pred': float(request.form.get('bill_avg_pred')),
+            'reamining_contract_pred': float(request.form.get('reamining_contract_pred')),
+            'service_failure_count_pred': int(request.form.get('service_failure_count_pred')),
+            'download_avg_pred': float(request.form.get('download_avg_pred')),
+            'upload_avg_pred': float(request.form.get('upload_avg_pred')),
+            'download_over_limit_pred': int(request.form.get('download_over_limit_pred')),
+            'model_choice': request.form.get('model_choice')
+        }
 
     # Determine which model to use
     model_choice = data.get('model_choice', 'random_forest')
 
     # List of feature keys
-    features = [
+    feature_keys = [
         'is_tv_subscriber_pred',
         'is_movie_package_subscriber_pred',
         'subscription_age_pred',
@@ -52,7 +82,7 @@ def predict():
     ]
 
     # Extract feature values in a loop
-    features = [data[key] for key in features]
+    features = [data[key] for key in feature_keys if key in data]
 
     features = np.array([features])
 
@@ -91,7 +121,10 @@ def predict():
     db.commit()
     db.refresh(new_prediction)
 
-    return jsonify(response), 200
+    if request.content_type == 'application/json':
+        return jsonify(response), 200
+    else:
+        return render_template('result.html', prediction=response), 200
 
 
 @route_bp.route('/predict_batch', methods=['POST'])
@@ -99,8 +132,8 @@ def predict_batch():
     """
     Predict the probability of churn for multiple customers using either the Random Forest or SVM model.
 
-    The model to use is specified in the input CSV. The features for the predictions are extracted
-    from the CSV and used to make predictions. The results, along with the input data, are saved
+    The model to use is specified in the form input. The features for the predictions are extracted
+    from the CSV file and used to make predictions. The results, along with the input data, are saved
     in the database and returned as a JSON response.
 
     Returns:
@@ -122,17 +155,14 @@ def predict_batch():
     if not file.filename.endswith('.csv'):
         return jsonify({"error": "File is not a CSV"}), 400
 
+    model_choice = request.form.get('model_choice', 'random_forest')
+
     try:
         data = pd.read_csv(file)
-
-        # Ensure 'model_choice' column exists
-        if 'model_choice' not in data.columns:
-            data['model_choice'] = 'random_forest'  # Default to 'random_forest' if not specified
 
         responses = []
 
         for index, row in data.iterrows():
-            model_choice = row['model_choice']
             features = np.array([
                 row['is_tv_subscriber_pred'],
                 row['is_movie_package_subscriber_pred'],
@@ -146,7 +176,6 @@ def predict_batch():
             ]).reshape(1, -1)
 
             prediction_prob = None
-            model_used = model_choice
 
             if model_choice == 'random_forest':
                 prediction_prob = random_forest_model.predict_proba(features)[0, 1]
@@ -158,14 +187,14 @@ def predict_batch():
                 return jsonify({"error": "Invalid model choice"}), 400
 
             response = {
-                'model_used': model_used,
+                'model_used': model_choice,
                 'prediction_prob': float(prediction_prob)
             }
 
             new_prediction_data = row.to_dict()
             new_prediction_data.update({
                 'prediction_prob': prediction_prob,
-                'model_used': model_used
+                'model_used': model_choice
             })
             new_prediction = Prediction.from_dict(new_prediction_data)
 
