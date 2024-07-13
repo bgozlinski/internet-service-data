@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Prediction Result{% endblock %}
+
+{% block content %}
+<h1 class="text-center">Prediction Result</h1>
+<div class="card">
+    <div class="card-body">
+        <p><strong>Model Used:</strong> {{ prediction.model_used }}</p>
+        <p><strong>Prediction Probability:</strong> {{ prediction.prediction_prob }}</p>
+    </div>
+</div>
+<div class="text-center mt-4">
+    <a href="/" class="btn btn-primary">Back to Home</a>
+</div>
+{% endblock %}
