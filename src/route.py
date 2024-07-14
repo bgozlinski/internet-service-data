@@ -22,19 +22,21 @@ model_paths = {
     'random_forest': os.path.join(model_dir, 'random_forest_model.pkl'),
     'svc': os.path.join(model_dir, 'svc_model.pkl'),
     'tensorflow_keras': os.path.join(model_dir, 'tensorflow_keras_model.h5'),
-    'xgboost': os.path.join(model_dir, 'xgboost_model.pkl')
+    'xgboost': os.path.join(model_dir, 'xgboost_model.pkl'),
+    'svm': os.path.join(model_dir, 'svm_model.pkl'),
 }
 
 # Load all models
 models = {
-    'gradient_boosting': joblib.load(model_paths['gradient_boosting']),
-    'knn': joblib.load(model_paths['knn']),
+    # 'gradient_boosting': joblib.load(model_paths['gradient_boosting']),
+    # 'knn': joblib.load(model_paths['knn']),
     'logistic_regression': joblib.load(model_paths['logistic_regression']),
     'mlp': joblib.load(model_paths['mlp']),
     'random_forest': joblib.load(model_paths['random_forest']),
     'svc': joblib.load(model_paths['svc']),
     'tensorflow_keras': tf.keras.models.load_model(model_paths['tensorflow_keras']),
-    'xgboost': joblib.load(model_paths['xgboost'])
+    'xgboost': joblib.load(model_paths['xgboost']),
+    'svm': joblib.load(model_paths['svm']),
 }
 
 
