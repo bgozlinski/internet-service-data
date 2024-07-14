@@ -1,5 +1,6 @@
 import os
 from flask import Blueprint, jsonify, request, render_template
+from sample.procesing_input_data import preprocess_input_data
 from src.database.models import Prediction
 from src.database.db import get_db
 import numpy as np
@@ -16,24 +17,25 @@ model_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'ml_m
 # Define paths for all models
 model_paths = {
     'gradient_boosting': os.path.join(model_dir, 'gradient_boosting_model.pkl'),
-    'keras': os.path.join(model_dir, 'keras_model.h5'),  # Change the extension to .h5
+    'tensorflow_keras': os.path.join(model_dir, 'keras_model.h5'),
     'knn': os.path.join(model_dir, 'knn_model.pkl'),
     'mlp': os.path.join(model_dir, 'mlp_model.pkl'),
     'random_forest': os.path.join(model_dir, 'random_forest_model.pkl'),
     'svm': os.path.join(model_dir, 'svm_model.pkl'),
-    'xgboost': os.path.join(model_dir, 'xgboost_model.pkl'),
+    'xgboost': os.path.join(model_dir, 'xgboost_model.pkl')
 }
 
 # Load all models
 models = {
     'gradient_boosting': joblib.load(model_paths['gradient_boosting']),
-    'keras': tf.keras.models.load_model(model_paths['keras']),
+    'tensorflow_keras': tf.keras.models.load_model(model_paths['tensorflow_keras']),
     'knn': joblib.load(model_paths['knn']),
     'mlp': joblib.load(model_paths['mlp']),
     'random_forest': joblib.load(model_paths['random_forest']),
     'svm': joblib.load(model_paths['svm']),
     'xgboost': joblib.load(model_paths['xgboost']),
 }
+
 
 @route_bp.route('/')
 def index():
@@ -52,6 +54,16 @@ def batch_input():
 
 @route_bp.route('/predict', methods=['POST'])
 def predict():
+    """
+    Predict the probability of churn for a customer using either the Random Forest or SVM model.
+
+    The model to use is specified in the input JSON or form data. The features for the prediction are extracted
+    from the input and used to make a prediction. The result, along with the input data, is
+    saved in the database and returned as a JSON response or rendered HTML template.
+
+    Returns:
+        (json): A JSON response containing the model used and the prediction probability, or rendered HTML.
+    """
     db = next(get_db())  # Get a database session
 
     if request.content_type == 'application/json':
@@ -75,34 +87,36 @@ def predict():
     if model_choice not in models:
         return jsonify({'error': 'Model not found'}), 404
 
-    # List of feature keys
-    feature_keys = [
-        'is_tv_subscriber_pred',
-        'is_movie_package_subscriber_pred',
-        'subscription_age_pred',
-        'bill_avg_pred',
-        'reamining_contract_pred',
-        'service_failure_count_pred',
-        'download_avg_pred',
-        'upload_avg_pred',
-        'download_over_limit_pred',
-    ]
+    data_clear = data.copy()
+    data_clear.pop('model_choice')
 
-    features = [data[key] for key in feature_keys if key in data]
-    features = np.array([features])
+    # Preprocess input data
+    processed_features = preprocess_input_data(data_clear)
+
+    # Ensure processed_features is a numpy array with the right shape
+    processed_features = np.array(processed_features).reshape(1, -1)
+
+    # Create a DataFrame with the original column names
+    processed_features_df = pd.DataFrame(processed_features,
+                                         columns=['is_tv_subscriber', 'is_movie_package_subscriber',
+                                                  'subscription_age', 'bill_avg', 'reamining_contract',
+                                                  'service_failure_count', 'download_avg', 'upload_avg',
+                                                  'download_over_limit'])
 
     prediction_prob = None
     model_used = model_choice
 
+    # Make the prediction using the selected model
     try:
-        if model_used == 'keras':
-            prediction_prob = models[model_used].predict(features)
-            prediction_prob = prediction_prob.flatten()[0]
+        if model_used == 'tensorflow_keras':
+            prediction_prob = models[model_used].predict(processed_features_df)
+            prediction_prob = prediction_prob.flatten()
+            prediction_prob = prediction_prob[0]
         else:
             if hasattr(models[model_used], 'predict_proba'):
-                prediction_prob = models[model_used].predict_proba(features)[:, 1]
+                prediction_prob = models[model_used].predict_proba(processed_features_df)[:, 1]
             else:
-                prediction = models[model_used].predict(features)
+                prediction = models[model_used].predict(processed_features_df)
                 prediction_prob = prediction.flatten()[0]
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -112,6 +126,7 @@ def predict():
         'prediction_prob': round(float(prediction_prob), 2)
     }
 
+    # Prepare the data for saving to the database
     prediction_data = data.copy()
     prediction_data.update({
         'prediction_prob': prediction_prob,
@@ -166,36 +181,39 @@ def predict_batch():
 
     try:
         data = pd.read_csv(file)
+
         responses = []
 
         for index, row in data.iterrows():
-            features = np.array([
-                row['is_tv_subscriber_pred'],
-                row['is_movie_package_subscriber_pred'],
-                row['subscription_age_pred'],
-                row['bill_avg_pred'],
-                row['reamining_contract_pred'],
-                row['service_failure_count_pred'],
-                row['download_avg_pred'],
-                row['upload_avg_pred'],
-                row['download_over_limit_pred']
-            ]).reshape(1, -1)
+            # Preprocess input data
+            processed_features = preprocess_input_data(row)
+
+            # Ensure processed_features is a numpy array with the right shape
+            processed_features = np.array(processed_features).reshape(1, -1)
+
+            # Create a DataFrame with the original column names
+            processed_features_df = pd.DataFrame(processed_features,
+                                                 columns=['is_tv_subscriber', 'is_movie_package_subscriber',
+                                                          'subscription_age', 'bill_avg', 'reamining_contract',
+                                                          'service_failure_count', 'download_avg', 'upload_avg',
+                                                          'download_over_limit'])
 
             prediction_prob = None
 
-            if model_choice == 'keras':
-                prediction_prob = models[model_choice].predict(features)
-                prediction_prob = prediction_prob.flatten()[0]
+            if model_choice == 'tensorflow_keras':
+                prediction_prob = models[model_choice].predict(processed_features_df)
+                prediction_prob = prediction_prob.flatten()
+                prediction_prob = prediction_prob[0]
             else:
                 if hasattr(models[model_choice], 'predict_proba'):
-                    prediction_prob = models[model_choice].predict_proba(features)[:, 1]
+                    prediction_prob = models[model_choice].predict_proba(processed_features_df)[:, 1]
                 else:
-                    prediction = models[model_choice].predict(features)
+                    prediction = models[model_choice].predict(processed_features_df)
                     prediction_prob = prediction.flatten()[0]
 
             response = {
                 'model_used': model_choice,
-                'prediction_prob': float(prediction_prob)
+                'prediction_prob': round(float(prediction_prob), 2)
             }
 
             new_prediction_data = row.to_dict()
