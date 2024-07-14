@@ -16,29 +16,24 @@ model_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'ml_m
 # Define paths for all models
 model_paths = {
     'gradient_boosting': os.path.join(model_dir, 'gradient_boosting_model.pkl'),
+    'keras': os.path.join(model_dir, 'keras_model.h5'),  # Change the extension to .h5
     'knn': os.path.join(model_dir, 'knn_model.pkl'),
-    'logistic_regression': os.path.join(model_dir, 'logistic_regression_model.pkl'),
     'mlp': os.path.join(model_dir, 'mlp_model.pkl'),
     'random_forest': os.path.join(model_dir, 'random_forest_model.pkl'),
-    'svc': os.path.join(model_dir, 'svc_model.pkl'),
-    'tensorflow_keras': os.path.join(model_dir, 'tensorflow_keras_model.h5'),
-    'xgboost': os.path.join(model_dir, 'xgboost_model.pkl'),
     'svm': os.path.join(model_dir, 'svm_model.pkl'),
+    'xgboost': os.path.join(model_dir, 'xgboost_model.pkl'),
 }
 
 # Load all models
 models = {
-    # 'gradient_boosting': joblib.load(model_paths['gradient_boosting']),
-    # 'knn': joblib.load(model_paths['knn']),
-    'logistic_regression': joblib.load(model_paths['logistic_regression']),
+    'gradient_boosting': joblib.load(model_paths['gradient_boosting']),
+    'keras': tf.keras.models.load_model(model_paths['keras']),
+    'knn': joblib.load(model_paths['knn']),
     'mlp': joblib.load(model_paths['mlp']),
     'random_forest': joblib.load(model_paths['random_forest']),
-    'svc': joblib.load(model_paths['svc']),
-    'tensorflow_keras': tf.keras.models.load_model(model_paths['tensorflow_keras']),
-    'xgboost': joblib.load(model_paths['xgboost']),
     'svm': joblib.load(model_paths['svm']),
+    'xgboost': joblib.load(model_paths['xgboost']),
 }
-
 
 @route_bp.route('/')
 def index():
@@ -57,16 +52,6 @@ def batch_input():
 
 @route_bp.route('/predict', methods=['POST'])
 def predict():
-    """
-    Predict the probability of churn for a customer using either the Random Forest or SVM model.
-
-    The model to use is specified in the input JSON or form data. The features for the prediction are extracted
-    from the input and used to make a prediction. The result, along with the input data, is
-    saved in the database and returned as a JSON response or rendered HTML template.
-
-    Returns:
-        (json): A JSON response containing the model used and the prediction probability, or rendered HTML.
-    """
     db = next(get_db())  # Get a database session
 
     if request.content_type == 'application/json':
@@ -103,20 +88,16 @@ def predict():
         'download_over_limit_pred',
     ]
 
-    # Extract feature values in a loop
     features = [data[key] for key in feature_keys if key in data]
-
     features = np.array([features])
 
     prediction_prob = None
     model_used = model_choice
 
-    # Make the prediction using the selected model
     try:
-        if model_used == 'tensorflow_keras':
+        if model_used == 'keras':
             prediction_prob = models[model_used].predict(features)
-            prediction_prob = prediction_prob.flatten()
-            prediction_prob = prediction_prob[0]
+            prediction_prob = prediction_prob.flatten()[0]
         else:
             if hasattr(models[model_used], 'predict_proba'):
                 prediction_prob = models[model_used].predict_proba(features)[:, 1]
@@ -126,13 +107,11 @@ def predict():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-
     response = {
         'model_used': model_used,
         'prediction_prob': round(float(prediction_prob), 2)
     }
 
-    # Prepare the data for saving to the database
     prediction_data = data.copy()
     prediction_data.update({
         'prediction_prob': prediction_prob,
@@ -187,7 +166,6 @@ def predict_batch():
 
     try:
         data = pd.read_csv(file)
-
         responses = []
 
         for index, row in data.iterrows():
@@ -205,17 +183,15 @@ def predict_batch():
 
             prediction_prob = None
 
-            if model_choice == 'tensorflow_keras':
+            if model_choice == 'keras':
                 prediction_prob = models[model_choice].predict(features)
-                prediction_prob = prediction_prob.flatten()
-                prediction_prob = prediction_prob[0]
+                prediction_prob = prediction_prob.flatten()[0]
             else:
                 if hasattr(models[model_choice], 'predict_proba'):
                     prediction_prob = models[model_choice].predict_proba(features)[:, 1]
                 else:
                     prediction = models[model_choice].predict(features)
                     prediction_prob = prediction.flatten()[0]
-
 
             response = {
                 'model_used': model_choice,
