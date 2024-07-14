@@ -3,7 +3,7 @@ class Config:
 
 
 class DevelopmentConfig(Config):
-    SQLALCHEMY_DATABASE_URI = "sqlite:///database.db"
+    SQLALCHEMY_DATABASE_URI = "sqlite:///data.db"
 
 
 class TestingConfig(Config):
