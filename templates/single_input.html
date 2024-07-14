@@ -12,12 +12,14 @@
                 <label class="form-check-label" for="is_tv_subscriber_pred">TV Subscriber</label>
             </div>
             <div class="form-group form-check">
-                <input type="checkbox" class="form-check-input" id="is_movie_package_subscriber_pred" name="is_movie_package_subscriber_pred">
+                <input type="checkbox" class="form-check-input" id="is_movie_package_subscriber_pred"
+                       name="is_movie_package_subscriber_pred">
                 <label class="form-check-label" for="is_movie_package_subscriber_pred">Movie Package</label>
             </div>
             <div class="form-group">
                 <label for="subscription_age_pred">Subscription Age</label>
-                <input type="number" step="any" class="form-control" id="subscription_age_pred" name="subscription_age_pred">
+                <input type="number" step="any" class="form-control" id="subscription_age_pred"
+                       name="subscription_age_pred">
             </div>
             <div class="form-group">
                 <label for="bill_avg_pred">Bill Average</label>
@@ -25,11 +27,13 @@
             </div>
             <div class="form-group">
                 <label for="reamining_contract_pred">Remaining Contract</label>
-                <input type="number" step="any" class="form-control" id="reamining_contract_pred" name="reamining_contract_pred">
+                <input type="number" step="any" class="form-control" id="reamining_contract_pred"
+                       name="reamining_contract_pred">
             </div>
             <div class="form-group">
                 <label for="service_failure_count_pred">Service Failures</label>
-                <input type="number" class="form-control" id="service_failure_count_pred" name="service_failure_count_pred">
+                <input type="number" class="form-control" id="service_failure_count_pred"
+                       name="service_failure_count_pred">
             </div>
         </div>
         <div class="col-md-6">
@@ -51,13 +55,13 @@
         <label for="model_choice">Model Choice</label>
         <select class="form-control" id="model_choice" name="model_choice">
             <option value="random_forest">Random Forest</option>
-                <option value="gradient_boosting">Gradient Boosting</option>
-                <option value="knn">K-Nearest Neighbors</option>
-                <option value="logistic_regression">Logistic Regression</option>
-                <option value="mlp">Multi-Layer Perceptron</option>
-                <option value="svc">Support Vector Classifier</option>
-                <option value="tensorflow_keras">TensorFlow Keras</option>
-                <option value="xgboost">XGBoost</option>
+            <option value="gradient_boosting">Gradient Boosting</option>
+            <option value="knn">K-Nearest Neighbors</option>
+            <option value="logistic_regression">Logistic Regression</option>
+            <option value="mlp">Multi-Layer Perceptron</option>
+            <option value="svc">Support Vector Classifier</option>
+            <option value="tensorflow_keras">TensorFlow Keras</option>
+            <option value="xgboost">XGBoost</option>
         </select>
     </div>
     <button type="submit" class="btn btn-primary btn-block">Predict</button>
