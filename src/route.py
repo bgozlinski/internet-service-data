@@ -5,6 +5,7 @@ from src.database.db import get_db
 import numpy as np
 import joblib
 import pandas as pd
+import tensorflow as tf
 
 # Create a Blueprint for the routes
 route_bp = Blueprint('route', __name__)
@@ -12,12 +13,29 @@ route_bp = Blueprint('route', __name__)
 # Define the absolute path to the models directory
 model_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'ml_models')
 
-# Load the models using absolute paths
-random_forest_model_path = os.path.join(model_dir, 'random_forest_model.pkl')
-svm_model_path = os.path.join(model_dir, 'svm_model.pkl')
+# Define paths for all models
+model_paths = {
+    'gradient_boosting': os.path.join(model_dir, 'gradient_boosting_model.pkl'),
+    'knn': os.path.join(model_dir, 'knn_model.pkl'),
+    'logistic_regression': os.path.join(model_dir, 'logistic_regression_model.pkl'),
+    'mlp': os.path.join(model_dir, 'mlp_model.pkl'),
+    'random_forest': os.path.join(model_dir, 'random_forest_model.pkl'),
+    'svc': os.path.join(model_dir, 'svc_model.pkl'),
+    'tensorflow_keras': os.path.join(model_dir, 'tensorflow_keras_model.h5'),
+    'xgboost': os.path.join(model_dir, 'xgboost_model.pkl')
+}
 
-random_forest_model = joblib.load(random_forest_model_path)
-svm_model = joblib.load(svm_model_path)
+# Load all models
+models = {
+    'gradient_boosting': joblib.load(model_paths['gradient_boosting']),
+    'knn': joblib.load(model_paths['knn']),
+    'logistic_regression': joblib.load(model_paths['logistic_regression']),
+    'mlp': joblib.load(model_paths['mlp']),
+    'random_forest': joblib.load(model_paths['random_forest']),
+    'svc': joblib.load(model_paths['svc']),
+    'tensorflow_keras': tf.keras.models.load_model(model_paths['tensorflow_keras']),
+    'xgboost': joblib.load(model_paths['xgboost'])
+}
 
 
 @route_bp.route('/')
@@ -67,6 +85,8 @@ def predict():
 
     # Determine which model to use
     model_choice = data.get('model_choice', 'random_forest')
+    if model_choice not in models:
+        return jsonify({'error': 'Model not found'}), 404
 
     # List of feature keys
     feature_keys = [
@@ -90,20 +110,24 @@ def predict():
     model_used = model_choice
 
     # Make the prediction using the selected model
-    if model_choice == 'random_forest':
-        # Predict using the Random Forest model
-        prediction_prob = random_forest_model.predict_proba(features)[0, 1]
-    elif model_choice == 'svm':
-        # Predict using the SVM model
-        svm_prob = svm_model.decision_function(features)
-        prediction_prob = 1 / (1 + np.exp(-svm_prob))
-        prediction_prob = prediction_prob[0]
-    else:
-        return jsonify({"error": "Invalid model choice"}), 400
+    try:
+        if model_used == 'tensorflow_keras':
+            prediction_prob = models[model_used].predict(features)
+            prediction_prob = prediction_prob.flatten()
+            prediction_prob = prediction_prob[0]
+        else:
+            if hasattr(models[model_used], 'predict_proba'):
+                prediction_prob = models[model_used].predict_proba(features)[:, 1]
+            else:
+                prediction = models[model_used].predict(features)
+                prediction_prob = prediction.flatten()[0]
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
     response = {
         'model_used': model_used,
-        'prediction_prob': float(prediction_prob)
+        'prediction_prob': round(float(prediction_prob), 2)
     }
 
     # Prepare the data for saving to the database
@@ -156,6 +180,8 @@ def predict_batch():
         return jsonify({"error": "File is not a CSV"}), 400
 
     model_choice = request.form.get('model_choice', 'random_forest')
+    if model_choice not in models:
+        return jsonify({'error': 'Model not found'}), 404
 
     try:
         data = pd.read_csv(file)
@@ -177,14 +203,17 @@ def predict_batch():
 
             prediction_prob = None
 
-            if model_choice == 'random_forest':
-                prediction_prob = random_forest_model.predict_proba(features)[0, 1]
-            elif model_choice == 'svm':
-                svm_prob = svm_model.decision_function(features)
-                prediction_prob = 1 / (1 + np.exp(-svm_prob))  # Applying logistic function to get probabilities
+            if model_choice == 'tensorflow_keras':
+                prediction_prob = models[model_choice].predict(features)
+                prediction_prob = prediction_prob.flatten()
                 prediction_prob = prediction_prob[0]
             else:
-                return jsonify({"error": "Invalid model choice"}), 400
+                if hasattr(models[model_choice], 'predict_proba'):
+                    prediction_prob = models[model_choice].predict_proba(features)[:, 1]
+                else:
+                    prediction = models[model_choice].predict(features)
+                    prediction_prob = prediction.flatten()[0]
+
 
             response = {
                 'model_used': model_choice,
