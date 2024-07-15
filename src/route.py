@@ -18,7 +18,7 @@ model_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'ml_m
 model_paths = {
     'gradient_boosting': os.path.join(model_dir, 'gradient_boosting_model.pkl'),
     'tensorflow_keras': os.path.join(model_dir, 'keras_model.h5'),
-    #'knn': os.path.join(model_dir, 'knn_model.pkl'),
+    'knn': os.path.join(model_dir, 'knn_model_model.pkl'),
     'mlp': os.path.join(model_dir, 'mlp_model.pkl'),
     'random_forest': os.path.join(model_dir, 'random_forest_model.pkl'),
     'svc': os.path.join(model_dir, 'svc_model.pkl'),
@@ -30,7 +30,7 @@ model_paths = {
 models = {
     'gradient_boosting': joblib.load(model_paths['gradient_boosting']),
     'tensorflow_keras': tf.keras.models.load_model(model_paths['tensorflow_keras']),
-    #'knn': joblib.load(model_paths['knn']),
+    'knn': joblib.load(model_paths['knn']),
     'mlp': joblib.load(model_paths['mlp']),
     'random_forest': joblib.load(model_paths['random_forest']),
     'svc': joblib.load(model_paths['svc']),
