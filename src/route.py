@@ -146,7 +146,8 @@ def predict():
     if request.content_type == 'application/json':
         return jsonify(response), 200
     else:
-        return render_template('result.html', prediction=response), 200
+        return render_template('result.html',
+                               prediction=response), 200
 
 
 @route_bp.route('/predict_batch', methods=['POST'])
@@ -214,8 +215,17 @@ def predict_batch():
                     prediction_prob = prediction.flatten()[0]
 
             response = {
-                'model_used': model_choice,
-                'prediction_prob': round(float(prediction_prob), 2)
+                'is_tv_subscriber_pred': row['is_tv_subscriber_pred'],
+                'is_movie_package_subscriber_pred': row['is_movie_package_subscriber_pred'],
+                'subscription_age_pred': row['subscription_age_pred'],
+                'bill_avg_pred': row['bill_avg_pred'],
+                'reamining_contract_pred': row['reamining_contract_pred'],
+                'service_failure_count_pred': row['service_failure_count_pred'],
+                'download_avg_pred': row['download_avg_pred'],
+                'upload_avg_pred': row['upload_avg_pred'],
+                'download_over_limit_pred': row['download_over_limit_pred'],
+                'prediction_prob': round(float(prediction_prob), 2),
+                'model_used': model_choice
             }
 
             new_prediction_data = row.to_dict()
@@ -231,7 +241,10 @@ def predict_batch():
 
             responses.append(response)
 
-        return jsonify(responses), 200
+        # return jsonify(responses), 200
+        return render_template('batch_result.html',
+                               predictions=responses,
+                               model_name=model_choice), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
