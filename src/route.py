@@ -21,8 +21,9 @@ model_paths = {
     'knn': os.path.join(model_dir, 'knn_model.pkl'),
     'mlp': os.path.join(model_dir, 'mlp_model.pkl'),
     'random_forest': os.path.join(model_dir, 'random_forest_model.pkl'),
-    'svm': os.path.join(model_dir, 'svm_model.pkl'),
-    'xgboost': os.path.join(model_dir, 'xgboost_model.pkl')
+    'svc': os.path.join(model_dir, 'svc_model.pkl'),
+    'xgboost': os.path.join(model_dir, 'xgboost_model.pkl'),
+    'logistic_regression': os.path.join(model_dir, 'logistic_regression.pkl'),
 }
 
 # Load all models
@@ -32,8 +33,9 @@ models = {
     'knn': joblib.load(model_paths['knn']),
     'mlp': joblib.load(model_paths['mlp']),
     'random_forest': joblib.load(model_paths['random_forest']),
-    'svm': joblib.load(model_paths['svm']),
+    'svc': joblib.load(model_paths['svm']),
     'xgboost': joblib.load(model_paths['xgboost']),
+    'logistic_regression': joblib.load(model_paths['logistic_regression']),
 }
 
 
