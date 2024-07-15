@@ -33,7 +33,7 @@ models = {
     'knn': joblib.load(model_paths['knn']),
     'mlp': joblib.load(model_paths['mlp']),
     'random_forest': joblib.load(model_paths['random_forest']),
-    'svc': joblib.load(model_paths['svm']),
+    'svc': joblib.load(model_paths['svc']),
     'xgboost': joblib.load(model_paths['xgboost']),
     'logistic_regression': joblib.load(model_paths['logistic_regression']),
 }
