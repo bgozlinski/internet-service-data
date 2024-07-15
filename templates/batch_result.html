@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Batch Input Prediction{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-center">
+    <div class="container mt-5">
+        <h2 class="text-center">Batch Predictions - Model: {{ model_name }}</h2>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th class="text-center">Index</th>
+                    <th class="text-center">is_tv_subscriber_pred</th>
+                    <th class="text-center">is_movie_package_subscriber_pred</th>
+                    <th class="text-center">subscription_age_pred</th>
+                    <th class="text-center">bill_avg_pred</th>
+                    <th class="text-center">reamining_contract_pred</th>
+                    <th class="text-center">service_failure_count_pred</th>
+                    <th class="text-center">download_avg_pred</th>
+                    <th class="text-center">upload_avg_pred</th>
+                    <th class="text-center">download_over_limit_pred</th>
+                    <th class="text-center">prediction_prob</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for prediction in predictions %}
+                <tr>
+                    <td class="text-center">{{ loop.index }}</td>
+                    <td class="text-center">{{ prediction['is_tv_subscriber_pred'] }}</td>
+                    <td class="text-center">{{ prediction['is_movie_package_subscriber_pred'] }}</td>
+                    <td class="text-center">{{ prediction['subscription_age_pred'] }}</td>
+                    <td class="text-center">{{ prediction['bill_avg_pred'] }}</td>
+                    <td class="text-center">{{ prediction['reamining_contract_pred'] }}</td>
+                    <td class="text-center">{{ prediction['service_failure_count_pred'] }}</td>
+                    <td class="text-center">{{ prediction['download_avg_pred'] }}</td>
+                    <td class="text-center">{{ prediction['upload_avg_pred'] }}</td>
+                    <td class="text-center">{{ prediction['download_over_limit_pred'] }}</td>
+                    <td class="text-center">{{ prediction['prediction_prob'] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
